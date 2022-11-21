@@ -1,4 +1,4 @@
-# Data-Structures-and-Algorithms
+# Data Structures and Algorithms
 
 Taken Fall of 2022. All pdf files were created with LaTeX. 
 
