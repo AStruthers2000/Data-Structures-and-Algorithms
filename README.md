@@ -1,6 +1,6 @@
 # Data-Structures-and-Algorithms
 
-## Taken Fall of 2022
+Taken Fall of 2022
 
 ## Description:
 This course is a detailed introduction to advanced algorithms and data structures used in the computational science MS program.
