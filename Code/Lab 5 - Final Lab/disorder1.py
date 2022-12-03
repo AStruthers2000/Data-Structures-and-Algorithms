@@ -8,11 +8,13 @@ Created on Fri Dec  2 16:43:24 2022
              included here.
 """
 
-from timeit import default_timer as timer
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy
 
 class Rectangle:
+    #a pretty basic rectangle class that contains some helpful functions for checking if points are inside or outside of the rectangle
+    
     def __init__(self, xl, xh, yl, yh):
         self.xl = xl
         self.yl = yl
@@ -31,11 +33,6 @@ class Rectangle:
         inYMin = numpy.all(point[1] > self.yl)
         inYMax = numpy.all(point[1] < self.yh)
         return inXMin and inXMax and inYMin and inYMax
-        
-        #if point[0] > self.GetXBounds()[0] and point[0] < self.GetXBounds()[1]:
-        #    if point[1] > self.GetYBounds()[0] and point[1] < self.GetYBounds()[1]:
-        #        return True
-        #return False
     
     def OutsideXMin(self, x):
         return x <= self.xl
@@ -48,71 +45,107 @@ class Rectangle:
     
     def OutsideYMax(self, y):
         return y >= self.yh
-        
 
-def random_walk_2D(np, ns, rect, plot_step):
-    particle_step = 0.01
-    
-    xpos = numpy.random.uniform(rect.GetXBounds()[0] + particle_step, rect.GetXBounds()[1]/2.0, np)
-    ypos = numpy.random.uniform(rect.GetYBounds()[0] + particle_step, rect.GetXBounds()[1], np)
-    
-    moves = numpy.random.randint(1, 4+1, size = ns*np)
-    moves.shape = (ns, np)
-    
-    plt.figure(1)
-    
-    NORTH = 1
-    SOUTH = 2
-    WEST = 3
-    EAST = 4
-    
-    for step in range(ns):
-        try:
-            this_move = moves[step]
-        except:
-            print("This only happens because we are iterating from [0, ns+1] and we don't care about the ns+1 index, so we throw an error and quit")
-            continue
 
-        ypos += numpy.where(this_move == NORTH, particle_step, 0)
-        ypos -= numpy.where(this_move == SOUTH, particle_step, 0)
-        xpos += numpy.where(this_move == EAST,  particle_step, 0)
-        xpos -= numpy.where(this_move == WEST,  particle_step, 0)
-        
-        ypos -= numpy.where(rect.OutsideYMax(ypos), particle_step, 0)
-        ypos += numpy.where(rect.OutsideYMin(ypos), particle_step, 0)
-        xpos -= numpy.where(rect.OutsideXMax(xpos), particle_step, 0)
-        xpos += numpy.where(rect.OutsideXMin(xpos), particle_step, 0)
-        
-        
-        valid_points = numpy.where(rect.IsPointInRect([xpos, ypos]), 1, 0)
-        assert numpy.all(valid_points==1)
-        
-        if (step + 1) % plot_step == 0 or step == 0:            
-            plt.scatter(xpos, ypos, s = 5)
-            
-            plt.ylim(rect.GetYBounds()[0] - 0.1, rect.GetYBounds()[1] + 0.1)
-            plt.xlim(rect.GetXBounds()[0] - 0.1, rect.GetXBounds()[1] + 0.1)
-            
-            plt.hlines(rect.GetYBounds()[0], rect.GetXBounds()[0], rect.GetXBounds()[1], colors='black')
-            plt.hlines(rect.GetYBounds()[1], rect.GetXBounds()[0], rect.GetXBounds()[1], colors='black')
-            plt.vlines(rect.GetXBounds()[0], rect.GetYBounds()[0], rect.GetYBounds()[1], colors='black')
-            plt.vlines(rect.GetXBounds()[1], rect.GetYBounds()[0], rect.GetYBounds()[1], colors='black')
-            
-            plt.title(f"{np} particles after {step+1} step"+("s" if step+1>1 else ""))
-            plt.savefig(f'tmp_{step+1}.png')
-            
-            plt.clf()
-            
+def init():
+    #set the axis scale to just slightly larger than the box we are simulating
+    plt.axis([rect.GetXBounds()[0] - 0.1, rect.GetXBounds()[1] + 0.1, rect.GetYBounds()[0] - 0.1, rect.GetYBounds()[1] + 0.1])
+    
+    #For FuncAnimation to work, we need to return a sequence of Matplotlib Artists
+    #in our case, we only have one Artist, so we add the trailing comma and no second Artist to trick FuncAnimation
+    return s_plt,
+
+
+def frame(step):
+    #tell python to use the xpositions and ypositions globally, instead of treating them like new local variables each frame
+    global xpos
+    global ypos
+
+    #print(f"Calculating step {step+1}")
+    
+    #calculate the next position using the vectorized method for speed
+    xpos, ypos = random_walk_2D(xpos, ypos, moves[step])
+    
+    #set_offsets expects a Nx2 ndarray but we have two 1d position arrays
+    #we can stack them together and create an ndarray with numpy.hstack
+    #then give the scatter plot this frame's data
+    data = numpy.hstack((xpos[:,numpy.newaxis], ypos[:,numpy.newaxis]))
+    s_plt.set_offsets(data)
+    
+    #we update the title to reflect the current step (with a stupid conditional so that frame 1 is singular)
+    plt.title(f"{np} particles after {step+1} step"+("s" if step+1>1 else ""))
+    
+    #again, we need to return a sequence of Artists to trick FuncAnimation into thinking we are giving it what it wants
+    return s_plt,
+
+
+def random_walk_2D(xpos, ypos, this_move):
+    #vectorized calculation of the random walk algorithms, based off of the current frame's list of movements
+    #if the particle is told to move north, we want to move the y position up by particle_step, for example
+    ypos += numpy.where(this_move == NORTH, particle_step, 0)
+    ypos -= numpy.where(this_move == SOUTH, particle_step, 0)
+    xpos += numpy.where(this_move == EAST,  particle_step, 0)
+    xpos -= numpy.where(this_move == WEST,  particle_step, 0)
+    
+    #after we move the particles, we need to validate that they are still within the box we care about
+    #if a particle is outside of the box, we do the exact opposite of the move that resulted in the particle momentarily escaping
+    ypos -= numpy.where(rect.OutsideYMax(ypos), particle_step, 0)
+    ypos += numpy.where(rect.OutsideYMin(ypos), particle_step, 0)
+    xpos -= numpy.where(rect.OutsideXMax(xpos), particle_step, 0)
+    xpos += numpy.where(rect.OutsideXMin(xpos), particle_step, 0)
+    
+    #since I wasn't confident in the opposite movement code above, we want to validate that all particles are still inside the box
+    #we do this by checking if each point is inside the rectangle. If it is, we add a 1 to the proper index of valid_points
+    #and a 0 if not. Then, we assert that all elements in valid_points is equal to 1. If any element is 0, the assert will fail
+    #and we will know that the opposite movement code failed somewhere
+    valid_points = numpy.where(rect.IsPointInRect([xpos, ypos]), 1, 0)
+    assert numpy.all(valid_points==1)
+
     return xpos, ypos
 
-#random.seed(10)
 
+#defining the possible movement directions
+NORTH = 1
+SOUTH = 2
+WEST = 3
+EAST = 4
+
+#creating the box that we are simulating
+rect = Rectangle(0, 1, 0, 1)
+
+#creating 10,000 points and simulating for 250 steps
+#this number of steps has been validated to be a sufficient number of steps to achieve a fully mixed effect
 np = 10000
-ns = 10000
-plot_step = 50
+ns = 250
 
-start_total = timer()
-x, y = random_walk_2D(np, ns, Rectangle(0, 1, 0, 1), plot_step)
-end_total = timer()
+#the distance, per step, that a particle can move
+particle_step = 0.05
 
-print(f"Current total execution speed: {end_total-start_total}")
+#setting up a vectorized version of every move that each particle will make, and shaping the data into 
+#a matrix with ns rows and np columns
+moves = numpy.random.randint(1, 4+1, size = ns*np)
+moves.shape = (ns, np)
+
+#setting up the initial uniformly distributed particles inside a box of dimensions x=[0, 1/2] and y = [0, 1]
+xpos = numpy.random.uniform(rect.GetXBounds()[0], rect.GetXBounds()[1]/2.0, np)
+ypos = numpy.random.uniform(rect.GetYBounds()[0], rect.GetXBounds()[1], np)
+
+fig = plt.figure()
+
+#drawing the actual boundries of the box we are simulating for clarity and nice visuals
+plt.hlines(rect.GetYBounds()[0], rect.GetXBounds()[0], rect.GetXBounds()[1], colors='black')
+plt.hlines(rect.GetYBounds()[1], rect.GetXBounds()[0], rect.GetXBounds()[1], colors='black')
+plt.vlines(rect.GetXBounds()[0], rect.GetYBounds()[0], rect.GetYBounds()[1], colors='black')
+plt.vlines(rect.GetXBounds()[1], rect.GetYBounds()[0], rect.GetYBounds()[1], colors='black')
+
+#initialize the scatter plot with a blank plot and dot size of 3
+s_plt = plt.scatter([], [], s = 3)
+
+#generating a list of all frame numbers to pass to FuncAnimation, so that we don't have to keep track of the current frame number
+all_args = [(frame_no) for frame_no in range(ns)]
+
+
+
+#setting up and starting the animation
+anim = animation.FuncAnimation(fig, frame, all_args, interval = 1, init_func = init, blit = True)
+anim.save('GasMolecules.gif', fps=144)
