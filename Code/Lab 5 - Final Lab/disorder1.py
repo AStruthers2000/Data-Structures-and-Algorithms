@@ -8,9 +8,12 @@ Created on Fri Dec  2 16:43:24 2022
              included here.
 """
 
+
+import numpy
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import numpy
+from timeit import default_timer as timer
+
 
 class Rectangle:
     #a pretty basic rectangle class that contains some helpful functions for checking if points are inside or outside of the rectangle
@@ -65,6 +68,10 @@ def frame(step):
     
     #calculate the next position using the vectorized method for speed
     xpos, ypos = random_walk_2D(xpos, ypos, moves[step])
+    
+    #check to make sure that no particles randomly decided they wanted out of the simulation
+    assert len(xpos) == np
+    assert len(ypos) == np
     
     #set_offsets expects a Nx2 ndarray but we have two 1d position arrays
     #we can stack them together and create an ndarray with numpy.hstack
@@ -144,8 +151,12 @@ s_plt = plt.scatter([], [], s = 3)
 #generating a list of all frame numbers to pass to FuncAnimation, so that we don't have to keep track of the current frame number
 all_args = [(frame_no) for frame_no in range(ns)]
 
-
+start_anim_time = timer()
 
 #setting up and starting the animation
 anim = animation.FuncAnimation(fig, frame, all_args, interval = 1, init_func = init, blit = True)
 anim.save('GasMolecules.gif', fps=144)
+
+finish_anim_time = timer()
+exe_time = finish_anim_time - start_anim_time
+print(f"Entire animation took {exe_time} seconds to generate\n\tThat's an average of {exe_time/ns} seconds per frame!")
