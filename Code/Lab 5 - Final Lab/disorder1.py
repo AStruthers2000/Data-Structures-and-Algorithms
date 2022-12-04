@@ -123,7 +123,7 @@ rect = Rectangle(0, 1, 0, 1)
 #creating 10,000 points and simulating for 250 steps
 #this number of steps has been validated to be a sufficient number of steps to achieve a fully mixed effect
 np = 10000
-ns = 250
+ns = 400
 
 #the distance, per step, that a particle can move
 particle_step = 0.05
