@@ -149,12 +149,12 @@ plt.vlines(rect.GetXBounds()[1], rect.GetYBounds()[0], rect.GetYBounds()[1], col
 s_plt = plt.scatter([], [], s = 3)
 
 #generating a list of all frame numbers to pass to FuncAnimation, so that we don't have to keep track of the current frame number
-all_args = [(frame_no) for frame_no in range(ns)]
+steps = [frame_no for frame_no in range(ns)]
 
 start_anim_time = timer()
 
 #setting up and starting the animation
-anim = animation.FuncAnimation(fig, frame, all_args, interval = 1, init_func = init, blit = True)
+anim = animation.FuncAnimation(fig, frame, steps, interval = 1, init_func = init, blit = True)
 anim.save('GasMolecules.gif', fps=144)
 
 finish_anim_time = timer()
